@@ -508,11 +508,15 @@ internal class PickerState constructor(
             // We need to maintain the mapping between the currently selected item and the
             // currently selected option.
             optionsOffset = positiveModulo(
-                selectedOption.coerceAtMost(newNumberOfOptions - 1) - scalingLazyListState.centerItemIndex,
+                (additionalOffset + selectedOption)
+                    .coerceIn(0, newNumberOfOptions - 1) -
+                    scalingLazyListState.centerItemIndex,
                 newNumberOfOptions,
             )
             _numberOfOptions = newNumberOfOptions
         }
+
+    internal var additionalOffset = 0
 
     internal fun numberOfItems() = if (!repeatItems) numberOfOptions else LARGE_NUMBER_OF_ITEMS
 

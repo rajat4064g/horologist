@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalFoundationApi::class)
-
 package com.google.android.horologist.composables
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -79,6 +78,7 @@ import java.time.temporal.TemporalAdjusters
  * @param fromDate the minimum date to be selected in picker
  * @param toDate the maximum date to be selected in picker
  */
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 public fun DatePicker(
     onDateConfirm: (LocalDate) -> Unit,
@@ -131,14 +131,37 @@ public fun DatePicker(
         datePickerState.monthState.selectedOption,
     ) {
         if (datePickerState.numOfMonths != datePickerState.monthState.numberOfOptions) {
+            fromDate?.monthValue?.let {
+                val sign = if (datePickerState.selectedYearEqualsFromYear) {
+                    -1
+                } else if (datePickerState.previousYearEqualsFromYear) {
+                    1
+                } else {
+                    0
+                }
+                datePickerState.monthState.additionalOffset = sign * (it - 1)
+            }
             datePickerState.monthState.numberOfOptions = datePickerState.numOfMonths
         }
         if (datePickerState.numOfDays != datePickerState.dayState.numberOfOptions) {
-            if (datePickerState.dayState.selectedOption >= datePickerState.numOfDays) {
+            fromDate?.dayOfMonth?.let {
+                val sign = if (datePickerState.selectedMonthEqualsFromMonth) {
+                    -1
+                } else if (datePickerState.previousMonthEqualsFromMonth) {
+                    1
+                } else {
+                    0
+                }
+                datePickerState.dayState.additionalOffset = sign * (it - 1)
+            }
+            if ((datePickerState.dayState.selectedOption +
+                    datePickerState.dayState.additionalOffset) >= datePickerState.numOfDays) {
                 datePickerState.dayState.animateScrollToOption(datePickerState.numOfDays - 1)
             }
             datePickerState.dayState.numberOfOptions = datePickerState.numOfDays
         }
+        datePickerState.previousYearEqualsFromYear = datePickerState.selectedYearEqualsFromYear
+        datePickerState.previousMonthEqualsFromMonth = datePickerState.selectedMonthEqualsFromMonth
     }
     val shortMonthNames = remember { getMonthNames("MMM") }
     val fullMonthNames = remember { getMonthNames("MMMM") }
@@ -363,6 +386,7 @@ public fun DatePicker(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun verifyDates(
     date: LocalDate,
     fromDate: LocalDate,
@@ -372,6 +396,7 @@ private fun verifyDates(
     require(date in fromDate..toDate) { "date should lie between fromDate and toDate" }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 private fun getMonthNames(pattern: String): List<String> {
     val monthFormatter = DateTimeFormatter.ofPattern(pattern)
     val months = 1..12
@@ -408,6 +433,7 @@ private fun getPickerGroupRowOffset(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 internal class DatePickerState constructor(
     private val date: LocalDate,
     private val fromDate: LocalDate?,
@@ -480,6 +506,9 @@ internal class DatePickerState constructor(
     fun currentDay(day: Int = dayState.selectedOption): Int {
         return day + dayOffset
     }
+
+    var previousMonthEqualsFromMonth = selectedMonthEqualsFromMonth
+    var previousYearEqualsFromYear = selectedYearEqualsFromYear
 }
 
 private fun createDescriptionDatePicker(
